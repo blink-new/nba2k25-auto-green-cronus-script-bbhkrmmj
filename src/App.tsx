@@ -17,6 +17,8 @@ function App() {
   const [autoShootEnabled, setAutoShootEnabled] = useState(true)
   const [playerDetection, setPlayerDetection] = useState(true)
   const [shotMeterEnabled, setShotMeterEnabled] = useState(true)
+  const [dribbleComboEnabled, setDribbleComboEnabled] = useState(false)
+  const [screensaverEnabled, setScreensaverEnabled] = useState(false)
   
   const generateGBCScript = () => {
     const gbcScript = `/*
@@ -36,11 +38,17 @@ Configuration: Shot Timing: ${shotTiming[0]}ms, Release Window: ${releaseWindow[
 #define AUTO_SHOOT_ENABLED  ${autoShootEnabled ? 'TRUE' : 'FALSE'}   // Enable automatic shooting
 #define PLAYER_DETECTION    ${playerDetection ? 'TRUE' : 'FALSE'}   // Detect if player has ball
 #define SHOT_METER_ENABLED  ${shotMeterEnabled ? 'TRUE' : 'FALSE'}   // Use shot meter detection
+#define DRIBBLE_COMBO_ENABLED ${dribbleComboEnabled ? 'TRUE' : 'FALSE'} // Enable D-pad dribble combos
+#define SCREENSAVER_ENABLED ${screensaverEnabled ? 'TRUE' : 'FALSE'} // Enable Cronus Zen screensaver
 
 // Button mappings for PS5
 #define SHOOT_BUTTON        PS5_SQUARE
 #define SPRINT_BUTTON       PS5_R2
 #define TURBO_BUTTON        PS5_L2
+#define DPAD_UP             PS5_UP
+#define DPAD_DOWN           PS5_DOWN
+#define DPAD_LEFT           PS5_LEFT
+#define DPAD_RIGHT          PS5_RIGHT
 
 // Variables
 int shot_start_time = 0;
@@ -73,6 +81,16 @@ main {
     // Provide haptic feedback
     if(VIBRATION_ENABLED && perfect_release_detected) {
         provide_feedback();
+    }
+
+    // Dribble Combos
+    if(DRIBBLE_COMBO_ENABLED) {
+        handle_dribble_combos();
+    }
+
+    // Cronus Zen Screensaver
+    if(SCREENSAVER_ENABLED) {
+        display_screensaver();
     }
 }
 
@@ -166,6 +184,49 @@ void provide_feedback() {
         wait(100);
         ffb_set(FFB_1, 0, 0);
         perfect_release_detected = FALSE;
+    }
+}
+
+// Dribble Combo Functions
+void handle_dribble_combos() {
+    if(event_press(DPAD_UP)) {
+        // Simple combo 1: Crossover
+        set_val(PS5_RIGHT_ANALOG_X, -100);
+        wait(50);
+        set_val(PS5_RIGHT_ANALOG_X, 100);
+        wait(50);
+        set_val(PS5_RIGHT_ANALOG_X, 0);
+    } else if(event_press(DPAD_DOWN)) {
+        // Simple combo 2: Behind the Back
+        set_val(PS5_RIGHT_ANALOG_Y, 100);
+        wait(50);
+        set_val(PS5_RIGHT_ANALOG_Y, 0);
+    } else if(event_press(DPAD_LEFT)) {
+        // Simple combo 3: Spin Move
+        set_val(PS5_RIGHT_ANALOG_X, -100);
+        set_val(PS5_RIGHT_ANALOG_Y, -100);
+        wait(50);
+        set_val(PS5_RIGHT_ANALOG_X, 100);
+        set_val(PS5_RIGHT_ANALOG_Y, 100);
+        wait(50);
+        set_val(PS5_RIGHT_ANALOG_X, 0);
+        set_val(PS5_RIGHT_ANALOG_Y, 0);
+    } else if(event_press(DPAD_RIGHT)) {
+        // Simple combo 4: Stepback
+        set_val(PS5_LEFT_ANALOG_Y, -100);
+        wait(50);
+        set_val(PS5_LEFT_ANALOG_Y, 0);
+    }
+}
+
+// Cronus Zen Screensaver
+void display_screensaver() {
+    static int screensaver_timer = 0;
+    if (screensaver_timer == 0 || (system_time() - screensaver_timer) > 5000) { // Update every 5 seconds
+        oled_clear();
+        oled_print("Harrys auto greener");
+        oled_update();
+        screensaver_timer = system_time();
     }
 }
 
@@ -301,6 +362,22 @@ void handle_different_shot_types() {
                     <Switch
                       checked={shotMeterEnabled}
                       onCheckedChange={setShotMeterEnabled}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <Label className="text-white">Dribble Combos (D-pad)</Label>
+                    <Switch
+                      checked={dribbleComboEnabled}
+                      onCheckedChange={setDribbleComboEnabled}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <Label className="text-white">Zen Screensaver</Label>
+                    <Switch
+                      checked={screensaverEnabled}
+                      onCheckedChange={setScreensaverEnabled}
                     />
                   </div>
                 </div>
@@ -445,6 +522,28 @@ void handle_different_shot_types() {
                     <CardContent>
                       <p className="text-purple-200">
                         Controller vibration confirms successful perfect releases
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-black/30 border-white/10 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle className="text-white text-lg">⛹️ Dribble Combos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-purple-200">
+                        Execute complex dribble moves with simple D-pad presses
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-black/30 border-white/10 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle className="text-white text-lg">✨ Zen Screensaver</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-purple-200">
+                        Customizable text display on your Cronus Zen's OLED screen
                       </p>
                     </CardContent>
                   </Card>
